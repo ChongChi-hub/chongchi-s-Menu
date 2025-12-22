@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>ChongChi’s Menu</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(120deg, #fdfbfb, #ebedee);
+    padding: 30px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.note {
+    text-align: center;
+    color: #555;
+    margin-bottom: 25px;
+}
+
+.menu-group {
+    max-width: 1100px;
+    margin: auto;
+    margin-bottom: 30px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.card {
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: 0.2s;
+    font-weight: 500;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+.card.selected {
+    border-color: #333;
+}
+
+/* Màu theo loại */
+.main { background: #ffe5e5; }
+.stir { background: #e6ffe9; }
+.soup { background: #e6f0ff; }
+
+.result {
+    max-width: 1100px;
+    margin: auto;
+    background: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+
+<body>
+
+<h1>🍽️ ChongChi’s Menu</h1>
+<p class="note">
+    Chọn tối đa 3 món: <b>1 món chính + 1 canh</b> (món xào không bắt buộc)
+</p>
+
+<!-- MÓN CHÍNH -->
+<div class="menu-group">
+<h2>🍚 Món chính</h2>
+<div class="cards">
+<div class="card main" onclick="selectItem(this,'main')">Thịt đậu sốt cà chua</div>
+<div class="card main" onclick="selectItem(this,'main')">Trứng cút thịt sốt cà chua</div>
+<div class="card main" onclick="selectItem(this,'main')">Ba chỉ rim sả</div>
+<div class="card main" onclick="selectItem(this,'main')">Tôm kho thịt</div>
+<div class="card main" onclick="selectItem(this,'main')">Cánh gà chiên mắm tỏi</div>
+<div class="card main" onclick="selectItem(this,'main')">Gà sốt cay ngọt</div>
+<div class="card main" onclick="selectItem(this,'main')">Thịt kho trứng cút</div>
+<div class="card main" onclick="selectItem(this,'main')">Ba chỉ kho thơm</div>
+<div class="card main" onclick="selectItem(this,'main')">Thịt xào cải chua</div>
+<div class="card main" onclick="selectItem(this,'main')">Cá basa kho tiêu</div>
+<div class="card main" onclick="selectItem(this,'main')">Cá nục kho</div>
+<div class="card main" onclick="selectItem(this,'main')">Cá thu chiên</div>
+<div class="card main" onclick="selectItem(this,'main')">Gà kho sả</div>
+<div class="card main" onclick="selectItem(this,'main')">Gà kho gừng</div>
+</div>
+</div>
+
+<!-- MÓN XÀO -->
+<div class="menu-group">
+<h2>🥘 Món xào (không bắt buộc)</h2>
+<div class="cards">
+<div class="card stir" onclick="selectItem(this,'stir')">Mướp xào</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Bắp cải xào cà rốt</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Rau muống xào tỏi</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Dưa leo hành tây thơm</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Cải thìa xào tỏi</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Đậu ve xào thịt</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Trứng chiên</div>
+<div class="card stir" onclick="selectItem(this,'stir')">Cải ngồng xào</div>
+</div>
+</div>
+
+<!-- CANH -->
+<div class="menu-group">
+<h2>🍲 Canh</h2>
+<div class="cards">
+<div class="card soup" onclick="selectItem(this,'soup')">Canh chua</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh rau ngót</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh mồng tơi</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh cải</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh bắp cải</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh rau củ</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh rau muống</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh rau lang</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh khoai mỡ</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh bầu tôm</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh bí đao</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh mướp</div>
+<div class="card soup" onclick="selectItem(this,'soup')">Canh cà chua trứng</div>
+</div>
+</div>
+
+<!-- KẾT QUẢ -->
+<div class="result" id="result">
+<h3>📋 Món đã chọn</h3>
+<p>🍚 Món chính: Chưa chọn</p>
+<p>🥘 Món xào: Không có</p>
+<p>🍲 Canh: Chưa chọn</p>
+</div>
+
+<script>
+let selected = { main:null, stir:null, soup:null };
+
+function selectItem(card,type){
+    if(selected[type] === card){
+        card.classList.remove("selected");
+        selected[type] = null;
+    } else {
+        if(selected[type]) selected[type].classList.remove("selected");
+        selected[type] = card;
+        card.classList.add("selected");
+    }
+    updateResult();
+}
+
+function updateResult(){
+    document.getElementById("result").innerHTML = `
+    <h3>📋 Món đã chọn</h3>
+    <p>🍚 Món chính: ${selected.main ? selected.main.innerText : "Chưa chọn"}</p>
+    <p>🥘 Món xào: ${selected.stir ? selected.stir.innerText : "Không có"}</p>
+    <p>🍲 Canh: ${selected.soup ? selected.soup.innerText : "Chưa chọn"}</p>
+    `;
+}
+</script>
+
+</body>
+</html>
