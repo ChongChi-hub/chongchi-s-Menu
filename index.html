@@ -1,166 +1,452 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>ChongChi’s Menu</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChongChi’s Menu - Family Edition</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(120deg, #fdfbfb, #ebedee);
-    padding: 30px;
-}
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #f0f2f5; padding-bottom: 80px; }
+        .header-title { color: #d63031; font-weight: 800; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        
+        /* === CARD MÓN ĂN === */
+        .dish-card {
+            cursor: pointer; transition: all 0.2s ease;
+            border: 2px solid transparent; background: white; user-select: none;
+            position: relative;
+        }
+        .dish-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); border-color: #ff7675; }
+        .dish-card.active-dish {
+            background-color: #ffeaa7; border-color: #fdcb6e; color: #d63031; font-weight: 700;
+        }
+        .dish-card.active-dish::after {
+            content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900;
+            position: absolute; top: 5px; right: 10px; color: #d63031;
+        }
 
-h1 {
-    text-align: center;
-}
+        /* === SIDEBAR & RESULT === */
+        .sticky-sidebar { position: sticky; top: 20px; z-index: 50; }
+        .result-box { background: white; border-radius: 12px; border-top: 5px solid #d63031; }
+        .category-header {
+            border-left: 5px solid #d63031; padding-left: 10px; color: #2d3436;
+            margin-bottom: 15px; margin-top: 20px; font-weight: 800; font-size: 1.3rem;
+        }
+        
+        /* === HISTORY TABLE === */
+        .history-section { margin-top: 50px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .table-custom thead { background: #2d3436; color: white; }
+        .table-custom th { border: none; }
+        
+        /* === TOAST MESSAGE (ANTD STYLE) === */
+        #toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1060;
+            display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+        .ant-toast {
+            background: white; padding: 10px 20px; border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.95rem; font-weight: 600;
+            animation: slideDown 0.3s ease forwards;
+            pointer-events: auto;
+            min-width: 250px; justify-content: center;
+        }
+        .ant-toast.success { color: #52c41a; border-left: 4px solid #52c41a; }
+        .ant-toast.error { color: #ff4d4f; border-left: 4px solid #ff4d4f; }
+        .ant-toast.info { color: #1890ff; border-left: 4px solid #1890ff; }
+        .ant-toast i { font-size: 1.1rem; }
+        .ant-toast span { color: #333; }
 
-.note {
-    text-align: center;
-    color: #555;
-    margin-bottom: 25px;
-}
-
-.menu-group {
-    max-width: 1100px;
-    margin: auto;
-    margin-bottom: 30px;
-}
-
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 15px;
-}
-
-.card {
-    padding: 12px;
-    border-radius: 12px;
-    cursor: pointer;
-    border: 3px solid transparent;
-    transition: 0.2s;
-    font-weight: 500;
-}
-
-.card:hover {
-    transform: translateY(-3px);
-}
-
-.card.selected {
-    border-color: #333;
-}
-
-/* Màu theo loại */
-.main { background: #ffe5e5; }
-.stir { background: #e6ffe9; }
-.soup { background: #e6f0ff; }
-
-.result {
-    max-width: 1100px;
-    margin: auto;
-    background: #fff;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-</style>
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>🍽️ ChongChi’s Menu</h1>
-<p class="note">
-    Chọn tối đa 3 món: <b>1 món chính + 1 canh</b> (món xào không bắt buộc)
-</p>
+    <div id="toast-container"></div>
 
-<!-- MÓN CHÍNH -->
-<div class="menu-group">
-<h2>🍚 Món chính</h2>
-<div class="cards">
-<div class="card main" onclick="selectItem(this,'main')">Thịt đậu sốt cà chua</div>
-<div class="card main" onclick="selectItem(this,'main')">Trứng cút thịt sốt cà chua</div>
-<div class="card main" onclick="selectItem(this,'main')">Ba chỉ rim sả</div>
-<div class="card main" onclick="selectItem(this,'main')">Tôm kho thịt</div>
-<div class="card main" onclick="selectItem(this,'main')">Cánh gà chiên mắm tỏi</div>
-<div class="card main" onclick="selectItem(this,'main')">Gà sốt cay ngọt</div>
-<div class="card main" onclick="selectItem(this,'main')">Thịt kho trứng cút</div>
-<div class="card main" onclick="selectItem(this,'main')">Ba chỉ kho thơm</div>
-<div class="card main" onclick="selectItem(this,'main')">Thịt xào cải chua</div>
-<div class="card main" onclick="selectItem(this,'main')">Cá basa kho tiêu</div>
-<div class="card main" onclick="selectItem(this,'main')">Cá nục kho</div>
-<div class="card main" onclick="selectItem(this,'main')">Cá thu chiên</div>
-<div class="card main" onclick="selectItem(this,'main')">Gà kho sả</div>
-<div class="card main" onclick="selectItem(this,'main')">Gà kho gừng</div>
-</div>
-</div>
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <h1 class="header-title display-4"><i class="fas fa-utensils me-2"></i>ChongChi’s Menu</h1>
+            <p class="text-muted fs-5">Thực đơn cơm nhà cho <b>Chị Hai & Anh Bo</b> ❤️</p>
+        </div>
 
-<!-- MÓN XÀO -->
-<div class="menu-group">
-<h2>🥘 Món xào (không bắt buộc)</h2>
-<div class="cards">
-<div class="card stir" onclick="selectItem(this,'stir')">Mướp xào</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Bắp cải xào cà rốt</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Rau muống xào tỏi</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Dưa leo hành tây thơm</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Cải thìa xào tỏi</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Đậu ve xào thịt</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Trứng chiên</div>
-<div class="card stir" onclick="selectItem(this,'stir')">Cải ngồng xào</div>
-</div>
-</div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <h3 class="category-header"><i class="fas fa-drumstick-bite me-2 text-danger"></i>Món Chính</h3>
+                <div class="row row-cols-2 row-cols-md-3 g-3" id="list-main"></div>
 
-<!-- CANH -->
-<div class="menu-group">
-<h2>🍲 Canh</h2>
-<div class="cards">
-<div class="card soup" onclick="selectItem(this,'soup')">Canh chua</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh rau ngót</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh mồng tơi</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh cải</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh bắp cải</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh rau củ</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh rau muống</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh rau lang</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh khoai mỡ</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh bầu tôm</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh bí đao</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh mướp</div>
-<div class="card soup" onclick="selectItem(this,'soup')">Canh cà chua trứng</div>
-</div>
-</div>
+                <h3 class="category-header"><i class="fas fa-leaf me-2 text-success"></i>Món Xào</h3>
+                <div class="row row-cols-2 row-cols-md-3 g-3" id="list-stir"></div>
 
-<!-- KẾT QUẢ -->
-<div class="result" id="result">
-<h3>📋 Món đã chọn</h3>
-<p>🍚 Món chính: Chưa chọn</p>
-<p>🥘 Món xào: Không có</p>
-<p>🍲 Canh: Chưa chọn</p>
-</div>
+                <h3 class="category-header"><i class="fas fa-mug-hot me-2 text-primary"></i>Canh</h3>
+                <div class="row row-cols-2 row-cols-md-3 g-3" id="list-soup"></div>
+            </div>
 
-<script>
-let selected = { main:null, stir:null, soup:null };
+            <div class="col-lg-4">
+                <div class="sticky-sidebar">
+                    <div class="result-box shadow p-4" id="ticket-area">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="m-0 fw-bold"><i class="fas fa-clipboard-check me-2"></i>Đã chọn</h4>
+                            <button onclick="resetMenuWithNotify()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                <i class="fas fa-redo me-1"></i> Reset
+                            </button>
+                        </div>
+                        <hr>
+                        
+                        <div class="mb-3 bg-light p-2 rounded border border-dashed">
+                            <label class="form-label small fw-bold text-muted mb-1"><i class="far fa-calendar-alt me-1"></i>Ngày ăn:</label>
+                            <input type="date" id="menu-date" class="form-control fw-bold text-center border-0 bg-transparent">
+                        </div>
 
-function selectItem(card,type){
-    if(selected[type] === card){
-        card.classList.remove("selected");
-        selected[type] = null;
-    } else {
-        if(selected[type]) selected[type].classList.remove("selected");
-        selected[type] = card;
-        card.classList.add("selected");
-    }
-    updateResult();
-}
+                        <div class="mb-3">
+                            <label class="text-muted small fw-bold">MÓN CHÍNH:</label>
+                            <div id="res-main" class="fw-bold text-danger fs-5">Chưa chọn</div>
+                        </div>
 
-function updateResult(){
-    document.getElementById("result").innerHTML = `
-    <h3>📋 Món đã chọn</h3>
-    <p>🍚 Món chính: ${selected.main ? selected.main.innerText : "Chưa chọn"}</p>
-    <p>🥘 Món xào: ${selected.stir ? selected.stir.innerText : "Không có"}</p>
-    <p>🍲 Canh: ${selected.soup ? selected.soup.innerText : "Chưa chọn"}</p>
-    `;
-}
-</script>
+                        <div class="mb-3">
+                            <label class="text-muted small fw-bold">MÓN XÀO:</label>
+                            <div id="res-stir" class="fw-bold text-success fs-5">Không có</div>
+                        </div>
 
+                        <div class="mb-4">
+                            <label class="text-muted small fw-bold">CANH:</label>
+                            <div id="res-soup" class="fw-bold text-primary fs-5">Chưa chọn</div>
+                        </div>
+
+                        <button onclick="exportAndSave()" class="btn btn-dark w-100 py-3 fw-bold btn-export rounded-3">
+                            <i class="fas fa-save me-2"></i>Lưu & Xuất PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-section" id="history-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold m-0"><i class="fas fa-history me-2 text-warning"></i>Lịch sử thực đơn</h3>
+                <button data-bs-toggle="modal" data-bs-target="#confirmDeleteAllModal" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="fas fa-trash-alt me-1"></i> Xóa tất cả
+                </button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="min-width: 100px;">Ngày</th>
+                            <th scope="col">Chi tiết thực đơn</th>
+                            <th scope="col" class="text-center" style="min-width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+                <p id="empty-msg" class="text-center text-muted mt-3 py-3 border rounded border-dashed" style="display:none;">
+                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>Chưa có lịch sử nào.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-0">Bạn có chắc muốn xóa dòng lịch sử này không?</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" id="btn-confirm-delete">Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteAllModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-danger">Cảnh báo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-0">Hành động này sẽ xóa sạch toàn bộ lịch sử.<br>Bạn có chắc chắn không?</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Thôi</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" onclick="actionClearAllHistory()">Xóa sạch</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- DATA ---
+        const menuData = {
+            main: ["Thịt đậu sốt cà chua", "Trứng cút thịt sốt cà", "Ba chỉ rim sả", "Tôm kho thịt", "Cánh gà chiên mắm tỏi", "Gà sốt cay ngọt", "Thịt kho trứng cút", "Ba chỉ kho thơm", "Thịt xào cải chua", "Cá basa kho tiêu", "Gà kho sả", "Gà kho gừng"],
+            stir: ["Mướp xào", "Bắp cải xào cà rốt", "Rau muống xào tỏi", "Dưa leo hành tây thơm", "Cải thìa xào tỏi", "Đậu ve xào thịt", "Trứng chiên", "Cải ngồng xào"],
+            soup: ["Canh chua", "Canh rau ngót", "Canh mồng tơi", "Canh cải", "Canh bắp cải", "Canh rau củ", "Canh rau muống", "Canh rau lang", "Canh khoai mỡ", "Canh bầu tôm", "Canh bí đao"]
+        };
+
+        // --- GLOBAL VARIABLES ---
+        document.getElementById('menu-date').valueAsDate = new Date();
+        let selected = { main: [], stir: [], soup: [] };
+        let deleteTargetId = null; // Biến tạm để lưu ID cần xóa
+        
+        // Modal Instance (để đóng mở bằng JS)
+        const deleteModalEl = document.getElementById('confirmDeleteModal');
+        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const deleteAllModal = new bootstrap.Modal(document.getElementById('confirmDeleteAllModal'));
+
+        // --- 1. RENDER & LOGIC CHÍNH ---
+        function renderMenu() {
+            const createHTML = (items, type) => items.map(item => `
+                <div class="col">
+                    <div class="card dish-card shadow-sm h-100" onclick="toggleItem(this, '${type}')">
+                        <div class="card-body d-flex align-items-center justify-content-center text-center p-2">
+                            <span>${item}</span>
+                        </div>
+                    </div>
+                </div>`).join('');
+            document.getElementById('list-main').innerHTML = createHTML(menuData.main, 'main');
+            document.getElementById('list-stir').innerHTML = createHTML(menuData.stir, 'stir');
+            document.getElementById('list-soup').innerHTML = createHTML(menuData.soup, 'soup');
+            renderHistory();
+        }
+
+        function toggleItem(card, type) {
+            // Xử lý khi click vào card
+            if (card instanceof Element) {
+                const name = card.innerText;
+                const idx = selected[type].indexOf(name);
+                if (idx > -1) { 
+                    selected[type].splice(idx, 1); 
+                    card.classList.remove('active-dish'); 
+                } else { 
+                    selected[type].push(name); 
+                    card.classList.add('active-dish'); 
+                }
+            } 
+            updateResult();
+        }
+
+        function updateResult() {
+            const fmt = (arr) => arr.length ? arr.join(", ") : "Chưa chọn";
+            const fmtStir = (arr) => arr.length ? arr.join(", ") : "Không có";
+            document.getElementById('res-main').innerText = fmt(selected.main);
+            document.getElementById('res-stir').innerText = fmtStir(selected.stir);
+            document.getElementById('res-soup').innerText = fmt(selected.soup);
+        }
+
+        // --- 2. HỆ THỐNG THÔNG BÁO (TOAST MESSAGE ANTD STYLE) ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Icon & Class tương ứng
+            let icon = 'fa-check-circle';
+            if (type === 'error') icon = 'fa-times-circle';
+            if (type === 'info') icon = 'fa-info-circle';
+
+            toast.className = `ant-toast ${type}`;
+            toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            // Tự động xóa sau 3s
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease forwards';
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 3000);
+        }
+
+        // --- 3. QUẢN LÝ LỊCH SỬ ---
+        function getHistory() {
+            const data = localStorage.getItem('menu_history');
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveToHistory() {
+            const dateRaw = document.getElementById('menu-date').value;
+            const parts = dateRaw.split("-");
+            const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+            const newItem = {
+                id: Date.now(),
+                dateRaw: dateRaw, 
+                displayDate: displayDate,
+                data: JSON.parse(JSON.stringify(selected)) 
+            };
+
+            const history = getHistory();
+            history.unshift(newItem); 
+            localStorage.setItem('menu_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const tbody = document.getElementById('history-body');
+            const emptyMsg = document.getElementById('empty-msg');
+            tbody.innerHTML = '';
+            
+            if (history.length === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                emptyMsg.style.display = 'none';
+                history.forEach(item => {
+                    const dishSummary = `
+                        <div class="small">
+                            <span class="text-danger fw-bold">Chính:</span> ${item.data.main.join(", ") || "---"}<br>
+                            <span class="text-success fw-bold">Xào:</span> ${item.data.stir.join(", ") || "---"}<br>
+                            <span class="text-primary fw-bold">Canh:</span> ${item.data.soup.join(", ") || "---"}
+                        </div>
+                    `;
+                    const row = `
+                        <tr>
+                            <td class="fw-bold text-muted">${item.displayDate}</td>
+                            <td>${dishSummary}</td>
+                            <td class="text-center">
+                                <button onclick="viewHistory(${item.id})" class="btn btn-sm btn-outline-primary mb-1 border-0" title="Xem lại"><i class="fas fa-eye"></i></button>
+                                <button onclick="openDeleteModal(${item.id})" class="btn btn-sm btn-outline-danger mb-1 border-0" title="Xóa"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            }
+        }
+
+        // --- 4. CÁC HÀNH ĐỘNG XỬ LÝ (ACTIONS) ---
+
+        // A. RESET MENU
+        function clearSelection() {
+            selected = { main: [], stir: [], soup: [] };
+            document.querySelectorAll('.dish-card').forEach(card => card.classList.remove('active-dish'));
+            updateResult();
+        }
+
+        function resetMenuWithNotify() {
+            clearSelection();
+            showToast('Đã làm mới thực đơn!', 'info');
+        }
+
+        // B. XEM LẠI LỊCH SỬ
+        function viewHistory(id) {
+            const history = getHistory();
+            const item = history.find(i => i.id === id);
+            if (item) {
+                selected = JSON.parse(JSON.stringify(item.data));
+                document.getElementById('menu-date').value = item.dateRaw;
+
+                // Sync UI
+                document.querySelectorAll('.dish-card').forEach(card => card.classList.remove('active-dish'));
+                document.querySelectorAll('.dish-card').forEach(card => {
+                    const name = card.innerText;
+                    if (selected.main.includes(name) || selected.stir.includes(name) || selected.soup.includes(name)) {
+                        card.classList.add('active-dish');
+                    }
+                });
+                updateResult();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('Đã khôi phục thực đơn cũ', 'info');
+            }
+        }
+
+        // C. XÓA 1 DÒNG (DÙNG MODAL)
+        function openDeleteModal(id) {
+            deleteTargetId = id;
+            deleteModal.show(); // Hiện modal Bootstrap
+        }
+        
+        // Gán sự kiện cho nút "Xóa" trong Modal
+        document.getElementById('btn-confirm-delete').addEventListener('click', function() {
+            if (deleteTargetId) {
+                let history = getHistory();
+                history = history.filter(item => item.id !== deleteTargetId);
+                localStorage.setItem('menu_history', JSON.stringify(history));
+                renderHistory();
+                
+                deleteModal.hide(); // Ẩn modal
+                showToast('Đã xóa thành công!', 'success');
+            }
+        });
+
+        // D. XÓA TẤT CẢ
+        function actionClearAllHistory() {
+            localStorage.removeItem('menu_history');
+            renderHistory();
+            deleteAllModal.hide(); // Ẩn modal sau khi xóa
+            showToast('Đã dọn sạch lịch sử!', 'success');
+        }
+
+        // E. LƯU & XUẤT PDF (AUTO CLEAR)
+        // E. LƯU & XUẤT PDF (AUTO CLEAR)
+        function exportAndSave() {
+            if(selected.main.length === 0 && selected.soup.length === 0) {
+                showToast('Bạn chưa chọn món nào cả!', 'error');
+                return;
+            }
+            
+            // 1. Lưu vào Storage
+            saveToHistory();
+
+            // 2. Ẩn nút để in cho đẹp
+            const btn = document.querySelector('.btn-export');
+            btn.style.display = 'none'; 
+
+            // Format tên file
+            const dateInput = document.getElementById('menu-date').value;
+            let dateString = "Ngay_moi";
+            if(dateInput) {
+                const parts = dateInput.split("-");
+                dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+
+            const element = document.getElementById('ticket-area');
+            
+            // === CẤU HÌNH FIX LỖI TRẮNG TRANG ===
+            const opt = {
+                margin: 0.5,
+                filename: `ThucDon_${dateString}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true,
+                    scrollY: 0  // <--- QUAN TRỌNG: Dòng này sửa lỗi trang trắng khi cuộn
+                },
+                jsPDF: { unit: 'in', format: 'a5', orientation: 'portrait' }
+            };
+
+            // 3. Thực hiện xuất PDF
+            html2pdf().set(opt).from(element).save().then(() => {
+                btn.style.display = 'block'; // Hiện lại nút
+                
+                // 4. AUTO CLEAR & NOTIFY
+                clearSelection();
+                showToast('Xuất PDF & Lưu thành công!', 'success');
+            });
+        }
+
+        // START APP
+        renderMenu();
+    </script>
 </body>
 </html>
