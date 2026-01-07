@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChongChi’s Menu - Multi Export</title>
+    <title>ChongChi’s Menu - iOS Fix</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -16,7 +16,7 @@
         body { font-family: 'Nunito', sans-serif; background-color: #f0f2f5; padding-bottom: 100px; }
         .header-title { color: #d63031; font-weight: 800; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
         
-        /* === CARD MÓN ĂN === */
+        /* CARD MÓN ĂN */
         .dish-card {
             cursor: pointer; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
             border: none; background: white; border-radius: 12px; 
@@ -26,27 +26,19 @@
         .dish-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(0,0,0,0.15); }
         .dish-card:active { transform: scale(0.98); }
         
-        .dish-img {
-            width: 100%; height: 130px; object-fit: cover; border-bottom: 1px solid #f0f0f0;
-            transition: 0.3s;
-        }
+        .dish-img { width: 100%; height: 130px; object-fit: cover; border-bottom: 1px solid #f0f0f0; transition: 0.3s; }
         .dish-name { font-weight: 700; font-size: 0.9rem; color: #2d3436; margin: 0; line-height: 1.3; }
 
         /* Active State */
         .dish-card.active-dish { box-shadow: 0 0 0 3px #d63031; }
         .dish-card.active-dish .dish-img { filter: brightness(0.5); }
-        
-        /* DẤU TÍCH */
         .dish-card.active-dish::after {
             content: '\f00c'; font-family: "Font Awesome 6 Free"; font-weight: 900;
-            position: absolute; 
-            top: 35%; left: 50%; transform: translate(-50%, -50%);
-            color: white; font-size: 2.5rem; z-index: 10;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            pointer-events: none;
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            color: white; font-size: 2.5rem; z-index: 10; text-shadow: 0 2px 10px rgba(0,0,0,0.5); pointer-events: none;
         }
 
-        /* === UI CHUNG === */
+        /* UI CHUNG */
         .sticky-sidebar { position: sticky; top: 20px; z-index: 50; }
         .result-box { background: white; border-radius: 12px; border-top: 5px solid #d63031; }
         .category-header { border-left: 5px solid #d63031; padding-left: 10px; color: #2d3436; margin: 25px 0 15px 0; font-weight: 800; font-size: 1.3rem; }
@@ -54,19 +46,13 @@
         .search-box input { padding-left: 40px; border-radius: 25px; border: 1px solid #ced4da; }
         .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
         .btn-random { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; border: none; }
-        
-        /* Button Edit Note */
-        .btn-edit-note {
-            border: none; background: none; color: #aaa; transition: 0.2s; padding: 0 5px;
-        }
+        .btn-edit-note { border: none; background: none; color: #aaa; transition: 0.2s; padding: 0 5px; }
         .btn-edit-note:hover { color: #d63031; transform: scale(1.1); }
 
-        /* Dropdown Custom */
+        /* Dropdown & Toast */
         .dropdown-item { padding: 10px 20px; font-weight: 600; cursor: pointer; }
         .dropdown-item:hover { background-color: #fff1f0; color: #d63031; }
         .dropdown-item i { width: 25px; text-align: center; margin-right: 10px; }
-
-        /* Toast */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1060; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .ant-toast { background: white; padding: 10px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; font-weight: 600; animation: slideDown 0.3s ease forwards; pointer-events: auto; }
         .ant-toast.success { color: #52c41a; border-left: 4px solid #52c41a; }
@@ -74,6 +60,7 @@
         .ant-toast.info { color: #1890ff; border-left: 4px solid #1890ff; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Table Custom */
         .table-custom th:nth-child(1), .table-custom td:nth-child(1) { width: 15%; white-space: nowrap; }
         .table-custom th:nth-child(2), .table-custom td:nth-child(2) { width: 70%; }
         .table-custom th:nth-child(3), .table-custom td:nth-child(3) { width: 15%; text-align: center; }
@@ -177,6 +164,29 @@
         </div>
     </div>
 
+    <div class="modal fade" id="resultImageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-success"><i class="fas fa-check-circle me-2"></i>Đã tạo ảnh xong!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <div class="bg-light p-3">
+                        <img id="final-result-img" src="" class="img-fluid shadow-sm rounded border" alt="Ket qua">
+                    </div>
+                    <div class="p-3">
+                        <p class="mb-0 fw-bold text-primary blink-text">👇 Nhấn giữ vào ảnh để Lưu vào Thư viện</p>
+                        <small class="text-muted">(Hoặc chọn "Thêm vào Ảnh" trên iOS)</small>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -225,7 +235,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // --- DATA ---
         const menuData = {
             main: [
                 { name: "Thịt đậu sốt cà chua", img: "https://img-global.cpcdn.com/recipes/af4a00ea96579b35/1200x630cq80/photo.jpg" },
@@ -268,16 +277,17 @@
             ]
         };
 
+        // --- INIT VARS ---
         document.getElementById('menu-date').valueAsDate = new Date();
         let selected = { main: null, stir: null, soup: null };
-        
-        // Modal Instances
         const deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         const deleteAllModal = new bootstrap.Modal(document.getElementById('confirmDeleteAllModal'));
         const noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+        const resultImageModal = new bootstrap.Modal(document.getElementById('resultImageModal'));
         let currentEditingType = null;
         let deleteTargetId = null;
 
+        // --- RENDER ---
         function renderMenu() {
             const createHTML = (items, type) => items.map(item => `
                 <div class="col dish-col">
@@ -288,7 +298,6 @@
                         </div>
                     </div>
                 </div>`).join('');
-
             document.getElementById('list-main').innerHTML = createHTML(menuData.main, 'main');
             document.getElementById('list-stir').innerHTML = createHTML(menuData.stir, 'stir');
             document.getElementById('list-soup').innerHTML = createHTML(menuData.soup, 'soup');
@@ -296,7 +305,7 @@
             updateUI(); 
         }
 
-        // --- CORE FUNCTIONS ---
+        // --- CORE LOGIC ---
         function toggleItem(type, name) {
             if (selected[type] && selected[type].name === name) {
                 selected[type] = null;
@@ -307,25 +316,6 @@
                 return; 
             }
             updateUI();
-        }
-
-        function openNoteModal(type) {
-            if (!selected[type]) return;
-            currentEditingType = type;
-            const item = selected[type];
-            document.getElementById('noteModalTitle').innerText = `Ghi chú: ${item.name}`;
-            document.getElementById('noteModalInput').value = item.note || "";
-            noteModal.show();
-        }
-
-        function saveNote() {
-            if (currentEditingType && selected[currentEditingType]) {
-                const newNote = document.getElementById('noteModalInput').value;
-                selected[currentEditingType].note = newNote;
-                updateResultText();
-                noteModal.hide();
-                showToast("Đã lưu ghi chú!", "info");
-            }
         }
 
         function updateUI() {
@@ -359,6 +349,26 @@
             document.getElementById('res-soup').innerHTML = selected.soup ? renderItemText(selected.soup, 'soup') : "Chưa chọn";
         }
 
+        // --- NOTE LOGIC ---
+        function openNoteModal(type) {
+            if (!selected[type]) return;
+            currentEditingType = type;
+            const item = selected[type];
+            document.getElementById('noteModalTitle').innerText = `Ghi chú: ${item.name}`;
+            document.getElementById('noteModalInput').value = item.note || "";
+            noteModal.show();
+        }
+        function saveNote() {
+            if (currentEditingType && selected[currentEditingType]) {
+                const newNote = document.getElementById('noteModalInput').value;
+                selected[currentEditingType].note = newNote;
+                updateResultText();
+                noteModal.hide();
+                showToast("Đã lưu ghi chú!", "info");
+            }
+        }
+
+        // --- UTILS ---
         function filterMenu() {
             const input = document.getElementById('search-input').value.toLowerCase();
             document.querySelectorAll('.dish-col').forEach(col => {
@@ -366,7 +376,6 @@
                 col.style.display = text.includes(input) ? "block" : "none";
             });
         }
-
         function randomizeMenu() {
             selected = { main: null, stir: null, soup: null };
             const pick = (arr) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)].name : null;
@@ -376,7 +385,7 @@
             updateUI();
             showToast('Đã chọn món ngẫu nhiên!', 'info');
         }
-
+        function resetMenuWithNotify() { selected = { main: null, stir: null, soup: null }; updateUI(); showToast('Đã làm mới!', 'info'); }
         function showToast(msg, type='success') {
             const t = document.createElement('div');
             let icon = type === 'error' ? 'fa-times-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-check-circle');
@@ -386,8 +395,8 @@
             setTimeout(() => t.remove(), 3000);
         }
 
+        // --- HISTORY ---
         function getHistory() { return JSON.parse(localStorage.getItem('menu_history') || '[]'); }
-
         function saveToHistory() {
             const dateInput = document.getElementById('menu-date').value;
             const parts = dateInput.split("-");
@@ -402,13 +411,10 @@
             localStorage.setItem('menu_history', JSON.stringify([item, ...getHistory()]));
             renderHistory();
         }
-
         function renderHistory() {
             const h = getHistory();
             const tbody = document.getElementById('history-body');
-            if (h.length === 0) {
-                tbody.innerHTML = ''; document.getElementById('empty-msg').style.display = 'block'; return;
-            }
+            if (h.length === 0) { tbody.innerHTML = ''; document.getElementById('empty-msg').style.display = 'block'; return; }
             document.getElementById('empty-msg').style.display = 'none';
             tbody.innerHTML = h.map(i => `
                 <tr>
@@ -424,18 +430,14 @@
                     </td>
                 </tr>`).join('');
         }
-
         function viewHistory(id) {
             const item = getHistory().find(i => i.id === id);
             if (item && item.rawData) {
                 selected = item.rawData;
-                document.getElementById('menu-date').value = item.dateRaw || new Date().toISOString().split('T')[0];
-                updateUI();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                showToast('Đã xem lại thực đơn cũ!', 'info');
+                if(item.dateRaw) document.getElementById('menu-date').value = item.dateRaw;
+                updateUI(); window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('Đã xem lại thực đơn cũ!', 'info');
             }
         }
-
         function openDeleteModal(id) { deleteTargetId = id; deleteModal.show(); }
         document.getElementById('btn-confirm-delete').addEventListener('click', function() {
             if (deleteTargetId) {
@@ -444,17 +446,12 @@
             }
         });
         function actionClearAllHistory() { localStorage.removeItem('menu_history'); renderHistory(); deleteAllModal.hide(); showToast('Đã dọn sạch lịch sử!'); }
-        function resetMenuWithNotify() { selected = { main: null, stir: null, soup: null }; updateUI(); showToast('Đã làm mới!', 'info'); }
 
-
-        // --- MULTI-EXPORT LOGIC (CORE) ---
+        // --- EXPORT LOGIC ---
         function processExport(type) {
             if(!selected.main && !selected.soup) return showToast('Chưa chọn món nào!', 'error');
-            
-            // 1. Lưu lịch sử
             saveToHistory();
 
-            // 2. Setup giao diện để chụp/in (ẩn nút thừa, fix ngày)
             const btnGroup = document.querySelector('.btn-export-group');
             const randomBtn = document.querySelector('.btn-random');
             const editBtns = document.querySelectorAll('.btn-edit-note');
@@ -465,7 +462,6 @@
             if(resetBtn) resetBtn.style.display = 'none';
             editBtns.forEach(b => b.style.display = 'none');
 
-            // Fix ngày tháng hiển thị đẹp
             const dateInput = document.getElementById('menu-date');
             const originalValue = dateInput.value; 
             let dateDisplayHtml = "";
@@ -482,7 +478,6 @@
             const dateStr = originalValue || "Menu";
             const element = document.getElementById('ticket-area');
 
-            // 3. XỬ LÝ THEO TỪNG LOẠI
             if (type === 'pdf') {
                 html2pdf().set({
                     margin: 0.5, filename: `ThucDon_${dateStr}.pdf`,
@@ -491,45 +486,31 @@
                     jsPDF: { unit: 'in', format: 'a5' }
                 }).from(element).save().then(() => restoreUI());
             } 
-            else if (type === 'clipboard' || type === 'image') {
+            else if (type === 'clipboard') {
                 html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
                     canvas.toBlob(async function(blob) {
-                        if(type === 'clipboard') {
-                            try {
-                                const item = new ClipboardItem({ "image/png": blob });
-                                navigator.clipboard.write([item]).then(() => {
-                                    showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
-                                }).catch(() => {
-                                    // Fallback
-                                    downloadImage(canvas, dateStr);
-                                    showToast('Không copy được, đã tải ảnh về!', 'info');
-                                });
-                            } catch(err) {
-                                downloadImage(canvas, dateStr);
-                                showToast('Trình duyệt không hỗ trợ Copy. Đã tải ảnh!', 'info');
-                            }
-                        } 
-                        else if(type === 'image') {
-                            const file = new File([blob], `ThucDon_${dateStr}.png`, { type: "image/png" });
-                            if (navigator.share && navigator.canShare({ files: [file] })) {
-                                try {
-                                    await navigator.share({
-                                        files: [file],
-                                        title: 'Thực đơn ChongChi',
-                                        text: 'Thực đơn hôm nay nè!'
-                                    });
-                                } catch (err) { console.log(err); }
-                            } else {
-                                downloadImage(canvas, dateStr);
-                                showToast('Đã tải ảnh về máy!', 'success');
-                            }
+                        try {
+                            const item = new ClipboardItem({ "image/png": blob });
+                            await navigator.clipboard.write([item]);
+                            showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
+                        } catch(err) {
+                            showToast('Không hỗ trợ copy ảnh. Đã tải về máy.', 'info');
+                            downloadImage(canvas, dateStr);
                         }
                         restoreUI();
                     });
                 });
             }
+            else if (type === 'image') {
+                // HIỂN THỊ MODAL CHO MOBILE
+                html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
+                    const imgData = canvas.toDataURL("image/png");
+                    document.getElementById('final-result-img').src = imgData;
+                    resultImageModal.show();
+                    restoreUI();
+                });
+            }
 
-            // Hàm khôi phục giao diện
             function restoreUI() {
                 if(btnGroup) btnGroup.style.display = 'inline-flex';
                 if(randomBtn) randomBtn.style.display = 'block';
@@ -543,7 +524,6 @@
                 updateUI();
             }
 
-            // Hàm tải ảnh (Fallback)
             function downloadImage(canvas, name) {
                 const link = document.createElement('a');
                 link.download = `ThucDon_${name}.png`;
