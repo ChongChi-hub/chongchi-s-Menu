@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChongChi’s Menu</title>
+    <title>ChongChi’s Menu - iOS Final Fix</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -49,10 +49,10 @@
         .btn-edit-note { border: none; background: none; color: #aaa; transition: 0.2s; padding: 0 5px; }
         .btn-edit-note:hover { color: #d63031; transform: scale(1.1); }
 
-        /* LOADING OVERLAY (MỚI) */
+        /* LOADING OVERLAY */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9); z-index: 9999;
+            background: rgba(255, 255, 255, 0.95); z-index: 9999;
             display: none; flex-direction: column; justify-content: center; align-items: center;
         }
         .spinner-border { width: 3rem; height: 3rem; }
@@ -78,7 +78,8 @@
 
     <div id="loading-overlay">
         <div class="spinner-border text-danger mb-3" role="status"></div>
-        <h5 class="fw-bold text-secondary">Đang tạo ảnh... đợi xíu nha!</h5>
+        <h5 class="fw-bold text-secondary">Đang xử lý ảnh...</h5>
+        <small class="text-muted">(Nếu lâu quá hãy thử lại nhé)</small>
     </div>
 
     <div id="toast-container"></div>
@@ -400,6 +401,7 @@
             showToast('Đã chọn món ngẫu nhiên!', 'info');
         }
 
+        function resetMenuWithNotify() { selected = { main: null, stir: null, soup: null }; updateUI(); showToast('Đã làm mới!', 'info'); }
         function showToast(msg, type='success') {
             const t = document.createElement('div');
             let icon = type === 'error' ? 'fa-times-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-check-circle');
@@ -409,8 +411,8 @@
             setTimeout(() => t.remove(), 3000);
         }
 
+        // --- HISTORY ---
         function getHistory() { return JSON.parse(localStorage.getItem('menu_history') || '[]'); }
-
         function saveToHistory() {
             const dateInput = document.getElementById('menu-date').value;
             const parts = dateInput.split("-");
@@ -425,7 +427,6 @@
             localStorage.setItem('menu_history', JSON.stringify([item, ...getHistory()]));
             renderHistory();
         }
-
         function renderHistory() {
             const h = getHistory();
             const tbody = document.getElementById('history-body');
@@ -445,16 +446,14 @@
                     </td>
                 </tr>`).join('');
         }
-
         function viewHistory(id) {
             const item = getHistory().find(i => i.id === id);
             if (item && item.rawData) {
                 selected = item.rawData;
-                document.getElementById('menu-date').value = item.dateRaw || new Date().toISOString().split('T')[0];
+                if(item.dateRaw) document.getElementById('menu-date').value = item.dateRaw;
                 updateUI(); window.scrollTo({ top: 0, behavior: 'smooth' }); showToast('Đã xem lại thực đơn cũ!', 'info');
             }
         }
-
         function openDeleteModal(id) { deleteTargetId = id; deleteModal.show(); }
         document.getElementById('btn-confirm-delete').addEventListener('click', function() {
             if (deleteTargetId) {
@@ -463,19 +462,24 @@
             }
         });
         function actionClearAllHistory() { localStorage.removeItem('menu_history'); renderHistory(); deleteAllModal.hide(); showToast('Đã dọn sạch lịch sử!'); }
-        function resetMenuWithNotify() { selected = { main: null, stir: null, soup: null }; updateUI(); showToast('Đã làm mới!', 'info'); }
 
-
-        // --- MULTI-EXPORT LOGIC (UPDATED FOR IOS) ---
+        // --- EXPORT LOGIC (FIXED FOR SAFARI) ---
         function processExport(type) {
             if(!selected.main && !selected.soup) return showToast('Chưa chọn món nào!', 'error');
             saveToHistory();
 
-            // 1. Hiện màn hình Loading
+            // Hiện Loading
             const loading = document.getElementById('loading-overlay');
             loading.style.display = 'flex';
 
-            // 2. Setup giao diện (Ẩn nút)
+            // Cài đặt "Timeout an toàn": 10 giây mà chưa xong thì tự tắt xoay
+            const safetyTimeout = setTimeout(() => {
+                loading.style.display = 'none';
+                restoreUI();
+                showToast('Hết thời gian chờ! Vui lòng thử lại.', 'error');
+            }, 10000);
+
+            // Ẩn UI
             const btnGroup = document.querySelector('.btn-export-group');
             const randomBtn = document.querySelector('.btn-random');
             const editBtns = document.querySelectorAll('.btn-edit-note');
@@ -486,7 +490,7 @@
             if(resetBtn) resetBtn.style.display = 'none';
             editBtns.forEach(b => b.style.display = 'none');
 
-            // 3. Fix ngày
+            // Fix ngày
             const dateInput = document.getElementById('menu-date');
             const originalValue = dateInput.value; 
             let dateDisplayHtml = "";
@@ -503,60 +507,68 @@
             const dateStr = originalValue || "Menu";
             const element = document.getElementById('ticket-area');
 
-            // 4. XỬ LÝ (Timeout để Loading hiện lên kịp)
+            // Chạy sau 500ms để UI kịp ẩn
             setTimeout(() => {
+                // PDF
                 if (type === 'pdf') {
                     html2pdf().set({
                         margin: 0.5, filename: `ThucDon_${dateStr}.pdf`,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
                         jsPDF: { unit: 'in', format: 'a5' }
-                    }).from(element).save().then(() => restoreUI());
+                    }).from(element).save().then(() => {
+                        clearTimeout(safetyTimeout);
+                        loading.style.display = 'none';
+                        restoreUI();
+                    }).catch(err => handleError(err));
                 } 
-                else if (type === 'clipboard') {
-                    html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
-                        canvas.toBlob(async function(blob) {
-                            try {
-                                const item = new ClipboardItem({ "image/png": blob });
-                                navigator.clipboard.write([item]).then(() => {
-                                    showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
-                                }).catch(() => {
-                                    showToast('Không hỗ trợ copy. Đã tải về máy.', 'info');
-                                    downloadImage(canvas, dateStr);
-                                });
-                            } catch(err) {
-                                downloadImage(canvas, dateStr);
-                                showToast('Trình duyệt không hỗ trợ Copy. Đã tải ảnh!', 'info');
-                            }
-                            restoreUI();
-                        });
-                    });
-                }
-                else if (type === 'image') {
-                    // CẤU HÌNH CHO IOS: Giảm scale xuống 1.5 hoặc 2 (tùy máy) để đỡ tốn RAM
+                // IMAGE (Mobile & Desktop)
+                else {
+                    // CONFIG QUAN TRỌNG CHO SAFARI:
+                    // 1. allowTaint: false (BẮT BUỘC ĐỂ KHÔNG BỊ TREO)
+                    // 2. useCORS: true (Để tải ảnh ngoài)
+                    // 3. ignoreElements: (Bỏ qua overlay loading)
                     html2canvas(element, { 
                         scale: 2, 
                         useCORS: true, 
+                        allowTaint: false, // QUAN TRỌNG: Phải là False
                         backgroundColor: "#ffffff",
-                        allowTaint: true, // Cho phép vẽ ảnh bẩn (quan trọng)
-                        ignoreElements: (node) => node.id === 'loading-overlay' // Bỏ qua overlay
+                        ignoreElements: (node) => node.id === 'loading-overlay'
                     }).then(canvas => {
-                        const imgData = canvas.toDataURL("image/png");
-                        document.getElementById('final-result-img').src = imgData;
+                        clearTimeout(safetyTimeout); // Hủy timeout
                         
-                        // Buộc hiện Modal bằng Bootstrap API
-                        resultImageModal.show();
-                        restoreUI();
-                    }).catch(err => {
-                        console.error(err);
-                        showToast('Lỗi tạo ảnh trên thiết bị này!', 'error');
-                        restoreUI();
-                    });
+                        canvas.toBlob(async function(blob) {
+                            if(type === 'clipboard') {
+                                try {
+                                    const item = new ClipboardItem({ "image/png": blob });
+                                    await navigator.clipboard.write([item]);
+                                    showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
+                                } catch(err) {
+                                    downloadImage(canvas, dateStr);
+                                    showToast('Không hỗ trợ copy. Đã tải về máy.', 'info');
+                                }
+                            } else {
+                                // Mobile: Hiện Modal
+                                const imgData = canvas.toDataURL("image/png");
+                                document.getElementById('final-result-img').src = imgData;
+                                resultImageModal.show();
+                            }
+                            loading.style.display = 'none';
+                            restoreUI();
+                        });
+                    }).catch(err => handleError(err));
                 }
-            }, 500); // Đợi 500ms để loading render
+            }, 500);
+
+            function handleError(err) {
+                clearTimeout(safetyTimeout);
+                loading.style.display = 'none';
+                restoreUI();
+                console.error(err);
+                alert("Lỗi tạo ảnh (Do ảnh bản quyền). Vui lòng thử lại!");
+            }
 
             function restoreUI() {
-                loading.style.display = 'none'; // Tắt loading
                 if(btnGroup) btnGroup.style.display = 'inline-flex';
                 if(randomBtn) randomBtn.style.display = 'block';
                 if(resetBtn) resetBtn.style.display = 'block';
