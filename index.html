@@ -33,11 +33,30 @@
         /* === SIDEBAR & RESULT === */
         .sticky-sidebar { position: sticky; top: 20px; z-index: 50; }
         .result-box { background: white; border-radius: 12px; border-top: 5px solid #d63031; }
+        
         .category-header {
             border-left: 5px solid #d63031; padding-left: 10px; color: #2d3436;
-            margin-bottom: 15px; margin-top: 20px; font-weight: 800; font-size: 1.3rem;
+            margin-bottom: 15px; margin-top: 25px; font-weight: 800; font-size: 1.3rem;
         }
         
+        /* === SEARCH BAR === */
+        .search-box {
+            position: relative; margin-bottom: 20px;
+        }
+        .search-box input {
+            padding-left: 40px; border-radius: 25px; border: 1px solid #ced4da;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .search-box i {
+            position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa;
+        }
+
+        /* === BUTTONS === */
+        .btn-random {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; border: none;
+        }
+        .btn-random:hover { background: linear-gradient(135deg, #5b4cc4, #8e84e8); color: white; }
+
         /* === HISTORY TABLE === */
         .history-section { margin-top: 50px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .table-custom thead { background: #2d3436; color: white; }
@@ -84,6 +103,12 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
+                
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="form-control form-control-lg" id="search-input" placeholder="" onkeyup="filterMenu()">
+                </div>
+
                 <h3 class="category-header"><i class="fas fa-drumstick-bite me-2 text-danger"></i>Món Chính</h3>
                 <div class="row row-cols-2 row-cols-md-3 g-3" id="list-main"></div>
 
@@ -105,6 +130,10 @@
                         </div>
                         <hr>
                         
+                        <button onclick="randomizeMenu()" class="btn btn-random w-100 mb-3 fw-bold py-2 rounded-3 shadow-sm">
+                            <i class="fas fa-dice me-2"></i>Hôm nay ăn gì?
+                        </button>
+
                         <div class="mb-3 bg-light p-2 rounded border border-dashed">
                             <label class="form-label small fw-bold text-muted mb-1"><i class="far fa-calendar-alt me-1"></i>Ngày ăn:</label>
                             <input type="date" id="menu-date" class="form-control fw-bold text-center border-0 bg-transparent">
@@ -120,9 +149,14 @@
                             <div id="res-stir" class="fw-bold text-success fs-5">Không có</div>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label class="text-muted small fw-bold">CANH:</label>
                             <div id="res-soup" class="fw-bold text-primary fs-5">Chưa chọn</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="text-muted small fw-bold"><i class="fas fa-pen me-1"></i>Ghi chú:</label>
+                            <textarea id="menu-note" class="form-control" rows="2" placeholder="Ví dụ: Đừng bỏ hành, ít cay..."></textarea>
                         </div>
 
                         <button onclick="exportAndSave()" class="btn btn-dark w-100 py-3 fw-bold btn-export rounded-3">
@@ -166,9 +200,7 @@
                     <h5 class="modal-title fw-bold">Xác nhận xóa</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <p class="mb-0">Bạn có chắc muốn xóa dòng lịch sử này không?</p>
-                </div>
+                <div class="modal-body text-center"><p class="mb-0">Bạn có chắc muốn xóa dòng lịch sử này không?</p></div>
                 <div class="modal-footer border-0 justify-content-center">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-danger rounded-pill px-4" id="btn-confirm-delete">Xóa</button>
@@ -184,9 +216,7 @@
                     <h5 class="modal-title fw-bold text-danger">Cảnh báo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <p class="mb-0">Hành động này sẽ xóa sạch toàn bộ lịch sử.<br>Bạn có chắc chắn không?</p>
-                </div>
+                <div class="modal-body text-center"><p class="mb-0">Hành động này sẽ xóa sạch toàn bộ lịch sử.<br>Bạn có chắc chắn không?</p></div>
                 <div class="modal-footer border-0 justify-content-center">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Thôi</button>
                     <button type="button" class="btn btn-danger rounded-pill px-4" onclick="actionClearAllHistory()">Xóa sạch</button>
@@ -205,20 +235,18 @@
             soup: ["Canh chua", "Canh rau ngót", "Canh mồng tơi", "Canh cải", "Canh bắp cải", "Canh rau củ", "Canh rau muống", "Canh rau lang", "Canh khoai mỡ", "Canh bầu tôm", "Canh bí đao"]
         };
 
-        // --- GLOBAL VARIABLES ---
+        // --- GLOBAL VARS ---
         document.getElementById('menu-date').valueAsDate = new Date();
         let selected = { main: [], stir: [], soup: [] };
-        let deleteTargetId = null; // Biến tạm để lưu ID cần xóa
+        let deleteTargetId = null;
         
-        // Modal Instance (để đóng mở bằng JS)
-        const deleteModalEl = document.getElementById('confirmDeleteModal');
-        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         const deleteAllModal = new bootstrap.Modal(document.getElementById('confirmDeleteAllModal'));
 
-        // --- 1. RENDER & LOGIC CHÍNH ---
+        // --- 1. RENDER MENU ---
         function renderMenu() {
             const createHTML = (items, type) => items.map(item => `
-                <div class="col">
+                <div class="col dish-col">
                     <div class="card dish-card shadow-sm h-100" onclick="toggleItem(this, '${type}')">
                         <div class="card-body d-flex align-items-center justify-content-center text-center p-2">
                             <span>${item}</span>
@@ -231,17 +259,61 @@
             renderHistory();
         }
 
+        // --- TÍNH NĂNG TÌM KIẾM ---
+        function filterMenu() {
+            const input = document.getElementById('search-input').value.toLowerCase();
+            const cols = document.querySelectorAll('.dish-col');
+            
+            cols.forEach(col => {
+                const text = col.innerText.toLowerCase();
+                // Ẩn/Hiện cả cột chứa card
+                if(text.includes(input)) {
+                    col.style.display = "block";
+                } else {
+                    col.style.display = "none";
+                }
+            });
+        }
+
+        // --- TÍNH NĂNG RANDOM ---
+        function randomizeMenu() {
+            // Reset trước
+            clearSelection();
+
+            // Chọn ngẫu nhiên (nếu danh sách có món)
+            if(menuData.main.length > 0) {
+                const rMain = menuData.main[Math.floor(Math.random() * menuData.main.length)];
+                selected.main.push(rMain);
+            }
+            if(menuData.stir.length > 0) {
+                const rStir = menuData.stir[Math.floor(Math.random() * menuData.stir.length)];
+                selected.stir.push(rStir);
+            }
+            if(menuData.soup.length > 0) {
+                const rSoup = menuData.soup[Math.floor(Math.random() * menuData.soup.length)];
+                selected.soup.push(rSoup);
+            }
+
+            // Update UI (Highlight các món vừa chọn)
+            document.querySelectorAll('.dish-card').forEach(card => {
+                const name = card.innerText;
+                if(selected.main.includes(name) || selected.stir.includes(name) || selected.soup.includes(name)) {
+                    card.classList.add('active-dish');
+                }
+            });
+
+            updateResult();
+            showToast('Đã gợi ý món ngẫu nhiên!', 'info');
+        }
+
         function toggleItem(card, type) {
-            // Xử lý khi click vào card
             if (card instanceof Element) {
                 const name = card.innerText;
                 const idx = selected[type].indexOf(name);
                 if (idx > -1) { 
-                    selected[type].splice(idx, 1); 
-                    card.classList.remove('active-dish'); 
+                    selected[type].splice(idx, 1); card.classList.remove('active-dish'); 
                 } else { 
-                    selected[type].push(name); 
-                    card.classList.add('active-dish'); 
+                    selected[type].push(name); card.classList.add('active-dish'); 
                 }
             } 
             updateResult();
@@ -255,29 +327,21 @@
             document.getElementById('res-soup').innerText = fmt(selected.soup);
         }
 
-        // --- 2. HỆ THỐNG THÔNG BÁO (TOAST MESSAGE ANTD STYLE) ---
+        // --- TOAST ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            
-            // Icon & Class tương ứng
-            let icon = 'fa-check-circle';
-            if (type === 'error') icon = 'fa-times-circle';
-            if (type === 'info') icon = 'fa-info-circle';
-
+            let icon = type === 'error' ? 'fa-times-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-check-circle');
             toast.className = `ant-toast ${type}`;
             toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
-            
             container.appendChild(toast);
-
-            // Tự động xóa sau 3s
             setTimeout(() => {
                 toast.style.animation = 'fadeOut 0.3s ease forwards';
                 toast.addEventListener('animationend', () => toast.remove());
             }, 3000);
         }
 
-        // --- 3. QUẢN LÝ LỊCH SỬ ---
+        // --- HISTORY ---
         function getHistory() {
             const data = localStorage.getItem('menu_history');
             return data ? JSON.parse(data) : [];
@@ -285,6 +349,7 @@
 
         function saveToHistory() {
             const dateRaw = document.getElementById('menu-date').value;
+            const note = document.getElementById('menu-note').value; // Lấy ghi chú
             const parts = dateRaw.split("-");
             const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
 
@@ -292,6 +357,7 @@
                 id: Date.now(),
                 dateRaw: dateRaw, 
                 displayDate: displayDate,
+                note: note, // Lưu ghi chú
                 data: JSON.parse(JSON.stringify(selected)) 
             };
 
@@ -312,11 +378,15 @@
             } else {
                 emptyMsg.style.display = 'none';
                 history.forEach(item => {
+                    // Hiển thị ghi chú nếu có
+                    const noteHtml = item.note ? `<div class="mt-1 text-muted fst-italic"><i class="fas fa-pen me-1 small"></i>${item.note}</div>` : '';
+
                     const dishSummary = `
                         <div class="small">
                             <span class="text-danger fw-bold">Chính:</span> ${item.data.main.join(", ") || "---"}<br>
                             <span class="text-success fw-bold">Xào:</span> ${item.data.stir.join(", ") || "---"}<br>
                             <span class="text-primary fw-bold">Canh:</span> ${item.data.soup.join(", ") || "---"}
+                            ${noteHtml}
                         </div>
                     `;
                     const row = `
@@ -334,12 +404,11 @@
             }
         }
 
-        // --- 4. CÁC HÀNH ĐỘNG XỬ LÝ (ACTIONS) ---
-
-        // A. RESET MENU
+        // --- ACTIONS ---
         function clearSelection() {
             selected = { main: [], stir: [], soup: [] };
             document.querySelectorAll('.dish-card').forEach(card => card.classList.remove('active-dish'));
+            document.getElementById('menu-note').value = ''; // Xóa luôn ghi chú
             updateResult();
         }
 
@@ -348,15 +417,14 @@
             showToast('Đã làm mới thực đơn!', 'info');
         }
 
-        // B. XEM LẠI LỊCH SỬ
         function viewHistory(id) {
             const history = getHistory();
             const item = history.find(i => i.id === id);
             if (item) {
                 selected = JSON.parse(JSON.stringify(item.data));
                 document.getElementById('menu-date').value = item.dateRaw;
+                document.getElementById('menu-note').value = item.note || ''; // Khôi phục ghi chú
 
-                // Sync UI
                 document.querySelectorAll('.dish-card').forEach(card => card.classList.remove('active-dish'));
                 document.querySelectorAll('.dish-card').forEach(card => {
                     const name = card.innerText;
@@ -370,49 +438,43 @@
             }
         }
 
-        // C. XÓA 1 DÒNG (DÙNG MODAL)
         function openDeleteModal(id) {
             deleteTargetId = id;
-            deleteModal.show(); // Hiện modal Bootstrap
+            deleteModal.show();
         }
         
-        // Gán sự kiện cho nút "Xóa" trong Modal
         document.getElementById('btn-confirm-delete').addEventListener('click', function() {
             if (deleteTargetId) {
                 let history = getHistory();
                 history = history.filter(item => item.id !== deleteTargetId);
                 localStorage.setItem('menu_history', JSON.stringify(history));
                 renderHistory();
-                
-                deleteModal.hide(); // Ẩn modal
+                deleteModal.hide();
                 showToast('Đã xóa thành công!', 'success');
             }
         });
 
-        // D. XÓA TẤT CẢ
         function actionClearAllHistory() {
             localStorage.removeItem('menu_history');
             renderHistory();
-            deleteAllModal.hide(); // Ẩn modal sau khi xóa
+            deleteAllModal.hide();
             showToast('Đã dọn sạch lịch sử!', 'success');
         }
 
-        // E. LƯU & XUẤT PDF (AUTO CLEAR)
-        // E. LƯU & XUẤT PDF (AUTO CLEAR)
         function exportAndSave() {
             if(selected.main.length === 0 && selected.soup.length === 0) {
                 showToast('Bạn chưa chọn món nào cả!', 'error');
                 return;
             }
-            
-            // 1. Lưu vào Storage
             saveToHistory();
 
-            // 2. Ẩn nút để in cho đẹp
             const btn = document.querySelector('.btn-export');
+            const searchBox = document.querySelector('.search-box'); // Ẩn thanh tìm kiếm khi in
+            const randomBtn = document.querySelector('.btn-random'); // Ẩn nút random khi in
+            
             btn.style.display = 'none'; 
+            if(randomBtn) randomBtn.style.display = 'none';
 
-            // Format tên file
             const dateInput = document.getElementById('menu-date').value;
             let dateString = "Ngay_moi";
             if(dateInput) {
@@ -421,31 +483,23 @@
             }
 
             const element = document.getElementById('ticket-area');
-            
-            // === CẤU HÌNH FIX LỖI TRẮNG TRANG ===
             const opt = {
                 margin: 0.5,
                 filename: `ThucDon_${dateString}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true,
-                    scrollY: 0  // <--- QUAN TRỌNG: Dòng này sửa lỗi trang trắng khi cuộn
-                },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
                 jsPDF: { unit: 'in', format: 'a5', orientation: 'portrait' }
             };
 
-            // 3. Thực hiện xuất PDF
             html2pdf().set(opt).from(element).save().then(() => {
-                btn.style.display = 'block'; // Hiện lại nút
+                btn.style.display = 'block';
+                if(randomBtn) randomBtn.style.display = 'block';
                 
-                // 4. AUTO CLEAR & NOTIFY
                 clearSelection();
                 showToast('Xuất PDF & Lưu thành công!', 'success');
             });
         }
 
-        // START APP
         renderMenu();
     </script>
 </body>
