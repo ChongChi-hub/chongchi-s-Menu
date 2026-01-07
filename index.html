@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChongChi’s Menu - iOS Final Fix</title>
+    <title>ChongChi’s Menu - iOS Base64 Fix</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -79,7 +79,7 @@
     <div id="loading-overlay">
         <div class="spinner-border text-danger mb-3" role="status"></div>
         <h5 class="fw-bold text-secondary">Đang xử lý ảnh...</h5>
-        <small class="text-muted">(Nếu lâu quá hãy thử lại nhé)</small>
+        <small class="text-muted text-center px-3" id="loading-text">(Vui lòng đợi 1 chút để tải dữ liệu ảnh)</small>
     </div>
 
     <div id="toast-container"></div>
@@ -292,10 +292,9 @@
             ]
         };
 
+        // --- INIT VARS ---
         document.getElementById('menu-date').valueAsDate = new Date();
         let selected = { main: null, stir: null, soup: null };
-        
-        // Modal Instances
         const deleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
         const deleteAllModal = new bootstrap.Modal(document.getElementById('confirmDeleteAllModal'));
         const noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
@@ -303,6 +302,46 @@
         let currentEditingType = null;
         let deleteTargetId = null;
 
+        // --- HELPER: CONVERT IMAGE TO BASE64 (BYPASS CORS SAFARI) ---
+        // Hàm này sẽ tải ảnh về trước và chuyển thành Base64 để html2canvas không phải tải lại
+        async function convertImagesToBase64(element) {
+            const images = element.querySelectorAll('img');
+            const promises = [];
+
+            images.forEach(img => {
+                // Chỉ xử lý ảnh online (http/https)
+                if (img.src.startsWith('http')) {
+                    const promise = new Promise((resolve, reject) => {
+                        const tempImg = new Image();
+                        tempImg.crossOrigin = 'Anonymous'; // Yêu cầu CORS
+                        tempImg.src = img.src + '?v=' + new Date().getTime(); // Thêm tham số để tránh cache cũ
+                        
+                        tempImg.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = tempImg.width;
+                            canvas.height = tempImg.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(tempImg, 0, 0);
+                            try {
+                                img.src = canvas.toDataURL('image/png'); // Thay thế ảnh gốc bằng Base64
+                                resolve();
+                            } catch(e) {
+                                // Nếu vẫn bị lỗi (do server chặn), giữ nguyên ảnh cũ
+                                console.warn('Không thể chuyển đổi ảnh:', img.src);
+                                resolve(); 
+                            }
+                        };
+                        tempImg.onerror = resolve; // Nếu lỗi tải ảnh, bỏ qua để không treo app
+                    });
+                    promises.push(promise);
+                }
+            });
+
+            // Đợi tất cả ảnh được chuyển đổi xong
+            return Promise.all(promises);
+        }
+
+        // --- RENDER ---
         function renderMenu() {
             const createHTML = (items, type) => items.map(item => `
                 <div class="col dish-col">
@@ -320,7 +359,7 @@
             updateUI(); 
         }
 
-        // --- CORE FUNCTIONS ---
+        // --- CORE LOGIC ---
         function toggleItem(type, name) {
             if (selected[type] && selected[type].name === name) {
                 selected[type] = null;
@@ -331,25 +370,6 @@
                 return; 
             }
             updateUI();
-        }
-
-        function openNoteModal(type) {
-            if (!selected[type]) return;
-            currentEditingType = type;
-            const item = selected[type];
-            document.getElementById('noteModalTitle').innerText = `Ghi chú: ${item.name}`;
-            document.getElementById('noteModalInput').value = item.note || "";
-            noteModal.show();
-        }
-
-        function saveNote() {
-            if (currentEditingType && selected[currentEditingType]) {
-                const newNote = document.getElementById('noteModalInput').value;
-                selected[currentEditingType].note = newNote;
-                updateResultText();
-                noteModal.hide();
-                showToast("Đã lưu ghi chú!", "info");
-            }
         }
 
         function updateUI() {
@@ -383,6 +403,26 @@
             document.getElementById('res-soup').innerHTML = selected.soup ? renderItemText(selected.soup, 'soup') : "Chưa chọn";
         }
 
+        // --- NOTE LOGIC ---
+        function openNoteModal(type) {
+            if (!selected[type]) return;
+            currentEditingType = type;
+            const item = selected[type];
+            document.getElementById('noteModalTitle').innerText = `Ghi chú: ${item.name}`;
+            document.getElementById('noteModalInput').value = item.note || "";
+            noteModal.show();
+        }
+        function saveNote() {
+            if (currentEditingType && selected[currentEditingType]) {
+                const newNote = document.getElementById('noteModalInput').value;
+                selected[currentEditingType].note = newNote;
+                updateResultText();
+                noteModal.hide();
+                showToast("Đã lưu ghi chú!", "info");
+            }
+        }
+
+        // --- UTILS ---
         function filterMenu() {
             const input = document.getElementById('search-input').value.toLowerCase();
             document.querySelectorAll('.dish-col').forEach(col => {
@@ -390,7 +430,6 @@
                 col.style.display = text.includes(input) ? "block" : "none";
             });
         }
-
         function randomizeMenu() {
             selected = { main: null, stir: null, soup: null };
             const pick = (arr) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)].name : null;
@@ -400,7 +439,6 @@
             updateUI();
             showToast('Đã chọn món ngẫu nhiên!', 'info');
         }
-
         function resetMenuWithNotify() { selected = { main: null, stir: null, soup: null }; updateUI(); showToast('Đã làm mới!', 'info'); }
         function showToast(msg, type='success') {
             const t = document.createElement('div');
@@ -463,23 +501,25 @@
         });
         function actionClearAllHistory() { localStorage.removeItem('menu_history'); renderHistory(); deleteAllModal.hide(); showToast('Đã dọn sạch lịch sử!'); }
 
-        // --- EXPORT LOGIC (FIXED FOR SAFARI) ---
+        // --- EXPORT LOGIC (BASE64 STRATEGY) ---
         function processExport(type) {
             if(!selected.main && !selected.soup) return showToast('Chưa chọn món nào!', 'error');
             saveToHistory();
 
-            // Hiện Loading
+            // 1. Hiện Loading
             const loading = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
             loading.style.display = 'flex';
+            loadingText.innerText = "(Đang tối ưu ảnh cho iOS...)";
 
-            // Cài đặt "Timeout an toàn": 10 giây mà chưa xong thì tự tắt xoay
+            // Safety timeout
             const safetyTimeout = setTimeout(() => {
                 loading.style.display = 'none';
                 restoreUI();
-                showToast('Hết thời gian chờ! Vui lòng thử lại.', 'error');
-            }, 10000);
+                alert("Mạng yếu hoặc ảnh bị lỗi bảo mật. Vui lòng thử lại!");
+            }, 15000);
 
-            // Ẩn UI
+            // 2. Setup UI
             const btnGroup = document.querySelector('.btn-export-group');
             const randomBtn = document.querySelector('.btn-random');
             const editBtns = document.querySelectorAll('.btn-edit-note');
@@ -507,65 +547,70 @@
             const dateStr = originalValue || "Menu";
             const element = document.getElementById('ticket-area');
 
-            // Chạy sau 500ms để UI kịp ẩn
-            setTimeout(() => {
-                // PDF
-                if (type === 'pdf') {
-                    html2pdf().set({
-                        margin: 0.5, filename: `ThucDon_${dateStr}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-                        jsPDF: { unit: 'in', format: 'a5' }
-                    }).from(element).save().then(() => {
-                        clearTimeout(safetyTimeout);
-                        loading.style.display = 'none';
-                        restoreUI();
-                    }).catch(err => handleError(err));
-                } 
-                // IMAGE (Mobile & Desktop)
-                else {
-                    // CONFIG QUAN TRỌNG CHO SAFARI:
-                    // 1. allowTaint: false (BẮT BUỘC ĐỂ KHÔNG BỊ TREO)
-                    // 2. useCORS: true (Để tải ảnh ngoài)
-                    // 3. ignoreElements: (Bỏ qua overlay loading)
-                    html2canvas(element, { 
-                        scale: 2, 
-                        useCORS: true, 
-                        allowTaint: false, // QUAN TRỌNG: Phải là False
-                        backgroundColor: "#ffffff",
-                        ignoreElements: (node) => node.id === 'loading-overlay'
-                    }).then(canvas => {
-                        clearTimeout(safetyTimeout); // Hủy timeout
-                        
-                        canvas.toBlob(async function(blob) {
-                            if(type === 'clipboard') {
-                                try {
-                                    const item = new ClipboardItem({ "image/png": blob });
-                                    await navigator.clipboard.write([item]);
-                                    showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
-                                } catch(err) {
-                                    downloadImage(canvas, dateStr);
-                                    showToast('Không hỗ trợ copy. Đã tải về máy.', 'info');
-                                }
-                            } else {
-                                // Mobile: Hiện Modal
-                                const imgData = canvas.toDataURL("image/png");
-                                document.getElementById('final-result-img').src = imgData;
-                                resultImageModal.show();
-                            }
-                            loading.style.display = 'none';
-                            restoreUI();
-                        });
-                    }).catch(err => handleError(err));
-                }
-            }, 500);
+            // 3. CHUYỂN ĐỔI ẢNH (QUAN TRỌNG NHẤT)
+            // Bước này tải ảnh về -> convert sang Base64 để lừa Safari
+            setTimeout(async () => {
+                try {
+                    // Nếu là chụp ảnh, chạy chuyển đổi trước
+                    if (type === 'image' || type === 'clipboard') {
+                        await convertImagesToBase64(element);
+                    }
 
-            function handleError(err) {
+                    loadingText.innerText = "(Đang chụp màn hình...)";
+
+                    // Chụp ảnh sau khi đã chuyển đổi
+                    if (type === 'pdf') {
+                        html2pdf().set({
+                            margin: 0.5, filename: `ThucDon_${dateStr}.pdf`,
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                            jsPDF: { unit: 'in', format: 'a5' }
+                        }).from(element).save().then(() => finishExport());
+                    } 
+                    else {
+                        // Cấu hình html2canvas chuẩn cho iOS
+                        html2canvas(element, { 
+                            scale: 2, 
+                            useCORS: true, // Vẫn giữ true để load các tài nguyên khác
+                            allowTaint: false, // Tắt taint để không lỗi bảo mật
+                            backgroundColor: "#ffffff",
+                            ignoreElements: (node) => node.id === 'loading-overlay'
+                        }).then(canvas => {
+                            canvas.toBlob(async function(blob) {
+                                if(type === 'clipboard') {
+                                    try {
+                                        const item = new ClipboardItem({ "image/png": blob });
+                                        await navigator.clipboard.write([item]);
+                                        showToast('Đã Copy ảnh! Ctrl+V để gửi.', 'success');
+                                    } catch(err) {
+                                        downloadImage(canvas, dateStr);
+                                        showToast('Không hỗ trợ copy. Đã tải về máy.', 'info');
+                                    }
+                                } else {
+                                    // Mobile: Hiện Modal
+                                    const imgData = canvas.toDataURL("image/png");
+                                    document.getElementById('final-result-img').src = imgData;
+                                    resultImageModal.show();
+                                }
+                                finishExport();
+                            });
+                        }).catch(err => {
+                            console.error(err);
+                            finishExport();
+                            alert("Lỗi khi tạo ảnh. Hãy thử lại!");
+                        });
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    finishExport();
+                }
+            }, 100);
+
+            function finishExport() {
                 clearTimeout(safetyTimeout);
                 loading.style.display = 'none';
                 restoreUI();
-                console.error(err);
-                alert("Lỗi tạo ảnh (Do ảnh bản quyền). Vui lòng thử lại!");
             }
 
             function restoreUI() {
@@ -579,6 +624,7 @@
                 
                 selected = { main: null, stir: null, soup: null };
                 updateUI();
+                // Reset lại src ảnh gốc (nếu cần thiết, nhưng thường không cần vì trang sẽ reload khi chọn món mới)
             }
 
             function downloadImage(canvas, name) {
